@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Hevyless API &mdash; hevy2garmin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Hevyless API <span class="badge badge-success" style="vertical-align: middle; margin-left: 8px;">Free</span></h1>
+    <p>Sync your workouts without a Hevy Pro subscription by using the Hevyless Mock API.</p>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <div class="card-title">How it works</div>
+    </div>
+    <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+        <p style="margin-bottom: 12px;">
+            The <b>Hevyless API</b> allows you to bypass the Hevy Pro API requirement by perfectly mocking the official API's responses. 
+            It scrapes your public Hevy web profile to fetch your latest workout and transforms it into the exact format that <code style="color: var(--accent);">hevy2garmin</code> expects.
+        </p>
+        <p>
+            You just need to ensure your Hevy profile is set to <b>Public</b> and enter your username below.
+        </p>
+    </div>
+
+    <form method="post" action="/hevyless" style="border-top: 1px solid var(--border); padding-top: 20px;">
+        <div class="form-group" style="max-width: 400px;">
+            <label class="form-label" for="hevyless_username">Hevy Username</label>
+            <div style="display: flex; gap: 12px;">
+                <input type="text" id="hevyless_username" name="hevyless_username" class="form-input" 
+                       placeholder="e.g. natural_lung915" value="{{ config.get('hevyless_username', '') }}" required>
+                <button type="submit" class="btn btn-primary">Save & Test</button>
+            </div>
+            <div class="form-hint">Make sure your profile visibility is set to Public in the Hevy app settings.</div>
+        </div>
+
+        {% if status %}
+            <div class="toast {% if status.type == 'success' %}toast-success{% else %}toast-error{% endif %}">
+                {% if status.type == 'success' %}✓ {% else %}✕ {% endif %}
+                {{ status.msg }}
+            </div>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Vercel Setup Instructions</div>
+    </div>
+    <div style="font-size: 14px; color: var(--text-secondary);">
+        <p style="margin-bottom: 16px;">
+            Since you are viewing this dashboard, the Hevyless API is already running natively as part of your application! 
+            To tell <code style="color: var(--text-primary);">hevy2garmin</code> to use it, you just need to override the API URL.
+        </p>
+        
+        <ol style="margin-left: 20px; line-height: 1.8;">
+            <li>Go to your <b>Vercel Project Settings</b> &rarr; <b>Environment Variables</b>.</li>
+            <li>Add <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: var(--text-primary);">HEVY_API_KEY_URL</code> and set the value to:
+                <div style="margin: 8px 0; font-family: monospace; color: var(--accent); background: var(--bg-secondary); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    https://&lt;your-project&gt;.vercel.app/api/hevyless/v1
+                </div>
+            </li>
+            <li>Add <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: var(--text-primary);">HEVY_API_KEY</code> and set it to any dummy value (e.g. <code style="color: var(--text-primary);">hevyless</code>).</li>
+            <li>Trigger a sync!</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
