@@ -161,11 +161,12 @@
             <label for="autosync-interval" style="font-size: 12px; color: var(--text-muted);">Every</label>
             <select
                 id="autosync-interval"
+                name="interval"
                 class="interval-select"
                 hx-post="/api/toggle-autosync"
                 hx-target="#autosync-status"
                 hx-swap="innerHTML"
-                hx-vals='js:{"enabled": document.getElementById("autosync-toggle").classList.contains("active"), "interval": this.value}'
+                hx-vals='js:{"enabled": document.getElementById("autosync-toggle").classList.contains("active")}'
                 hx-disabled-elt="this, #autosync-toggle"
                 hx-indicator="#autosync-spinner, #autosync-status"
                 hx-trigger="change"

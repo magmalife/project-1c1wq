@@ -1259,6 +1259,7 @@ async def api_toggle_autosync(request: Request):
         except Exception as e:
             logger.warning("Failed to persist auto-sync state: %s", e)
 
+    error_msg = None
     if enabled:
         if os.environ.get("VERCEL") and os.environ.get("GITHUB_PAT"):
             ok, msg = await _setup_github_actions(interval_minutes=interval)
@@ -1266,6 +1267,7 @@ async def api_toggle_autosync(request: Request):
                 logger.info("GitHub Actions auto-sync configured (interval=%dmin)", interval)
             else:
                 logger.warning("Failed to set up GitHub Actions: %s", msg)
+                error_msg = msg
         else:
             _schedule_autosync(interval)
         logger.info("Auto-sync enabled: every %d min", interval)
@@ -1290,6 +1292,8 @@ async def api_toggle_autosync(request: Request):
         logger.info("Auto-sync disabled")
 
     auto_sync = _get_autosync_status()
+    if error_msg:
+        return HTMLResponse(f'<div class="toast toast-error" style="margin-top: 8px;">GitHub Actions Setup Failed: {error_msg}</div>')
     return _render("partials/autosync_status.html", auto_sync=auto_sync)
 
 
