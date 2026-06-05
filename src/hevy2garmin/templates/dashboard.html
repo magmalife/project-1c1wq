@@ -185,9 +185,31 @@
     <div id="autosync-status" style="font-size: 12px; color: var(--text-muted);">
         {% if auto_sync.enabled %}
             {% if auto_sync.last_sync %}Last: {{ auto_sync.last_sync }}{% endif %}
-            {% if auto_sync.next_sync %} · Next: {{ auto_sync.next_sync }}{% endif %}
+            {% if auto_sync.next_sync %} · Next: <span id="sync-countdown" data-countdown-to="{{ auto_sync.next_sync_iso }}">{{ auto_sync.next_sync }}</span>{% endif %}
         {% endif %}
     </div>
+    <script>
+        function updateSyncCountdown() {
+            const el = document.getElementById('sync-countdown');
+            if (!el || !el.dataset.countdownTo) return;
+            const target = new Date(el.dataset.countdownTo).getTime();
+            const now = new Date().getTime();
+            const diff = target - now;
+            if (diff > 0) {
+                const minutes = Math.floor(diff / 60000);
+                const seconds = Math.floor((diff % 60000) / 1000);
+                if (minutes > 0) {
+                    el.textContent = `in ${minutes}m ${seconds}s`;
+                } else {
+                    el.textContent = `in ${seconds}s`;
+                }
+            } else {
+                el.textContent = "any moment now...";
+            }
+        }
+        setInterval(updateSyncCountdown, 1000);
+        updateSyncCountdown();
+    </script>
 </div>
 
 <style>
@@ -228,8 +250,9 @@
 
     <!-- Sync log -->
     <div class="card">
-        <div class="card-header">
-            <span class="card-title">Sync Log</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span class="card-title">Sync History</span>
+            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" hx-post="/api/clear-logs" hx-confirm="Clear all sync history logs?" hx-on::after-request="window.location.reload()">Clear Logs</button>
         </div>
         {% if sync_log %}
             {% for entry in sync_log[:7] %}

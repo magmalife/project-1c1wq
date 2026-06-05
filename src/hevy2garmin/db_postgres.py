@@ -26,25 +26,29 @@ class PostgresDatabase(Database):
         self._conn_cache = None
         self._ensure_tables()
 
+    from contextlib import contextmanager
+
+    @contextmanager
     def _get_conn(self):
         import psycopg2
         from psycopg2.extras import RealDictCursor
 
-        # Reuse connection if still alive (avoids Neon cold-start per query)
-        if self._conn_cache is not None:
+        # Create a fresh connection per request. Vercel freezes containers, 
+        # which breaks cached TCP connections and causes silent hangs on SELECT 1.
+        # Neon uses pgBouncer so new connections are extremely fast.
+        conn = psycopg2.connect(
+            self.database_url, 
+            cursor_factory=RealDictCursor,
+            connect_timeout=5,
+            options="-c statement_timeout=5000"
+        )
+        try:
+            yield conn
+        finally:
             try:
-                self._conn_cache.cursor().execute("SELECT 1")
-                return self._conn_cache
+                conn.close()
             except Exception:
-                try:
-                    self._conn_cache.close()
-                except Exception:
-                    pass
-                self._conn_cache = None
-
-        conn = psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
-        self._conn_cache = conn
-        return conn
+                pass
 
     def _ensure_tables(self) -> None:
         with self._get_conn() as conn:

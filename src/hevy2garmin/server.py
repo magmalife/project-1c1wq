@@ -255,6 +255,10 @@ def _get_autosync_status() -> dict[str, Any]:
             status["last_sync"] = f"{hours_ago}h {minutes_ago % 60}m ago"
 
         if enabled:
+            from datetime import timedelta
+            next_sync_time = _last_sync_time + timedelta(minutes=interval)
+            status["next_sync_iso"] = next_sync_time.isoformat()
+            
             remaining = interval - minutes_ago
             if remaining <= 0:
                 status["next_sync"] = "soon"
@@ -406,6 +410,8 @@ async def dashboard(request: Request):
             from hevy2garmin.hevy import HevyClient
             hevy = HevyClient(api_key=config.get("hevy_api_key"), hevyless_username=config.get("hevyless_username"))
             hevy_total = hevy.get_workout_count()
+            if getattr(hevy, 'is_hevyless', False):
+                hevy_total = max(matched_count, synced_count) + hevy_total
             _db.set_app_config("hevy_total", {"count": hevy_total})
     except Exception:
         pass
@@ -1218,6 +1224,24 @@ async def api_unsync_all(request: Request):
 
     logger.info("Unsynced all %d workouts", count)
     return JSONResponse({"ok": True, "count": count})
+
+@app.post("/api/clear-logs")
+async def api_clear_logs():
+    """Clear the sync history logs."""
+    from fastapi.responses import JSONResponse
+    
+    _db = db.get_db()
+    if hasattr(_db, '_get_conn'):
+        with _db._get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM sync_log")
+            conn.commit()
+    elif hasattr(_db, 'conn'):
+        with _db.conn:
+            _db.conn.execute("DELETE FROM sync_log")
+            
+    return JSONResponse({"ok": True})
+
 
 
 @app.post("/api/toggle-autosync", response_class=HTMLResponse)
