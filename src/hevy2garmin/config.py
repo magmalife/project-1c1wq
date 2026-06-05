@@ -69,7 +69,7 @@ def load_config() -> dict[str, Any]:
                 with _db._get_conn() as conn:
                     with conn.cursor() as cur:
                         # Credentials
-                        cur.execute("SELECT platform, credentials FROM platform_credentials WHERE platform IN ('hevy', 'garmin')")
+                        cur.execute("SELECT platform, credentials FROM platform_credentials WHERE platform IN ('hevy', 'garmin', 'auto_sync')")
                         for row in cur.fetchall():
                             creds = row["credentials"]
                             if isinstance(creds, str):
@@ -86,6 +86,8 @@ def load_config() -> dict[str, Any]:
                                     config["garmin_email"] = creds["email"]
                                 if creds.get("password"):
                                     config["garmin_password"] = creds["password"]
+                            elif row["platform"] == "auto_sync":
+                                config["auto_sync"] = creds
                         # App settings
                         cur.execute("SELECT key, value FROM app_cache WHERE key IN ('user_profile', 'timing', 'hr_fusion', 'merge_settings', 'hevyless_username')")
                         for row in cur.fetchall():
@@ -103,8 +105,9 @@ def load_config() -> dict[str, Any]:
                                 config[row["key"]].update(val)
                             else:
                                 config[row["key"]] = val
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error("Failed to load config from database: %s", e)
 
     # Environment variables fill gaps (DB credentials take precedence since user may
     # have changed them via the setup/settings UI after initial deploy)
