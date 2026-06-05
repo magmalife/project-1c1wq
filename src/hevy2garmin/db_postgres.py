@@ -38,9 +38,7 @@ class PostgresDatabase(Database):
         # Neon uses pgBouncer so new connections are extremely fast.
         conn = psycopg2.connect(
             self.database_url, 
-            cursor_factory=RealDictCursor,
-            connect_timeout=5,
-            options="-c statement_timeout=5000"
+            cursor_factory=RealDictCursor
         )
         try:
             yield conn
