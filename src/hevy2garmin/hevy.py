@@ -27,7 +27,14 @@ class HevyClient:
         self,
         api_key: str | None = None,
         base_url: str | None = None,
+        hevyless_username: str | None = None,
     ) -> None:
+        self.hevyless_username = hevyless_username
+        self.is_hevyless = bool(hevyless_username) and not api_key
+        
+        if self.is_hevyless:
+            return
+
         self.base_url = (base_url or os.environ.get("HEVY_API_KEY_URL", DEFAULT_BASE_URL)).rstrip("/")
         key = api_key or os.environ.get("HEVY_API_KEY", "")
         if not key:
@@ -82,11 +89,23 @@ class HevyClient:
 
     def get_workout_count(self) -> int:
         """Get total number of workouts."""
+        if self.is_hevyless:
+            from hevy2garmin.hevyless import fetch_latest_workout
+            workout = fetch_latest_workout(self.hevyless_username)
+            return 1 if workout else 0
         data = self._get("/workouts/count")
         return data["workout_count"]
 
     def get_workouts(self, page: int = 1, page_size: int = 10) -> dict:
         """Get a page of workouts."""
+        if self.is_hevyless:
+            if page > 1:
+                return {"page_count": 1, "workouts": []}
+            from hevy2garmin.hevyless import fetch_latest_workout
+            workout = fetch_latest_workout(self.hevyless_username)
+            if workout:
+                return {"page_count": 1, "workouts": [workout]}
+            return {"page_count": 1, "workouts": []}
         return self._get("/workouts", {"page": page, "pageSize": page_size})
 
     def get_all_workouts(self, since_page: int = 1, page_size: int = 10) -> list[dict]:

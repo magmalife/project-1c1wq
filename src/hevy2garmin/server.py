@@ -110,7 +110,7 @@ def _get_unmapped_exercises() -> list[tuple[str, int]]:
     try:
         from hevy2garmin.hevy import HevyClient
         from hevy2garmin.mapper import lookup_exercise
-        hevy = HevyClient(api_key=config.get("hevy_api_key"))
+        hevy = HevyClient(api_key=config.get("hevy_api_key"), hevyless_username=config.get("hevyless_username"))
         for pg in range(1, 6):
             data = hevy.get_workouts(page=pg, page_size=10)
             for w in data.get("workouts", []):
@@ -404,7 +404,7 @@ async def dashboard(request: Request):
             hevy_total = cached.get("count", 0)
         else:
             from hevy2garmin.hevy import HevyClient
-            hevy = HevyClient(api_key=config.get("hevy_api_key"))
+            hevy = HevyClient(api_key=config.get("hevy_api_key"), hevyless_username=config.get("hevyless_username"))
             hevy_total = hevy.get_workout_count()
             _db.set_app_config("hevy_total", {"count": hevy_total})
     except Exception:
@@ -613,7 +613,9 @@ async def workouts_page(request: Request):
             workouts_raw = cached.get("workouts", [])
             page_count = cached.get("page_count", 1)
         else:
-            data = HevyClient(api_key=config.get("hevy_api_key")).get_workouts(page=page, page_size=10)
+            hevy_api_key = config.get("hevy_api_key")
+            hevyless_username = config.get("hevyless_username")
+            data = HevyClient(api_key=hevy_api_key, hevyless_username=hevyless_username).get_workouts(page=page, page_size=10)
             workouts_raw = data.get("workouts", [])
             page_count = data.get("page_count", 1)
             _db.set_app_config(cache_key, {"workouts": workouts_raw, "page_count": page_count})
@@ -712,7 +714,7 @@ async def api_workout_hr(request: Request, hevy_id: str):
         from hevy2garmin.matcher import fetch_garmin_activities, match_workouts_to_garmin
         from garmin_auth import RateLimiter
 
-        hevy = HevyClient(api_key=config.get("hevy_api_key"))
+        hevy = HevyClient(api_key=config.get("hevy_api_key"), hevyless_username=config.get("hevyless_username"))
         data = hevy.get_workouts(page=1, page_size=10)
         workouts = data.get("workouts", [])
         workout = next((w for w in workouts if w["id"] == hevy_id), None)
@@ -1130,7 +1132,7 @@ async def api_sync_single(request: Request, workout_id: str):
         force_upload = request.query_params.get("force") == "1"
 
         config = load_config()
-        data = HevyClient(api_key=config.get("hevy_api_key")).get_workouts(page=1, page_size=10)
+        data = HevyClient(api_key=config.get("hevy_api_key"), hevyless_username=config.get("hevyless_username")).get_workouts(page=1, page_size=10)
         workout = next((w for w in data.get("workouts", []) if w["id"] == workout_id), None)
         if not workout:
             return HTMLResponse('<td colspan="5">Workout not found</td>')
@@ -1515,16 +1517,17 @@ async def _do_sync_one(request: Request):
 
     config = load_config()
     hevy_api_key = config.get("hevy_api_key")
+    hevyless_username = config.get("hevyless_username")
 
-    if not hevy_api_key:
-        return JSONResponse({"error": "Hevy API key not configured"}, status_code=400)
+    if not hevy_api_key and not hevyless_username:
+        return JSONResponse({"error": "Hevy API key or Hevyless Username not configured"}, status_code=400)
 
     from hevy2garmin.hevy import HevyClient
     from hevy2garmin.garmin import get_client, upload_fit, rename_activity, set_description, generate_description
     from hevy2garmin.fit import generate_fit
     import tempfile
 
-    hevy = HevyClient(api_key=hevy_api_key)
+    hevy = HevyClient(api_key=hevy_api_key, hevyless_username=hevyless_username)
 
     # Find first unsynced workout, paginating through recent history
     total_count = hevy.get_workout_count()

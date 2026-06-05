@@ -42,8 +42,9 @@ def get_latest_workout_id(username: str) -> str:
     last_workout = data.get("last_workout", {})
     return last_workout.get("short_id")
 
-def fetch_latest_workout() -> dict:
-    username = get_target_username()
+def fetch_latest_workout(username: str = None) -> dict:
+    if not username:
+        username = get_target_username()
     if not username:
         return None
         

@@ -134,7 +134,7 @@ def cmd_list(args: argparse.Namespace) -> None:
     _require_config(args)
     cfg = load_config()
     from hevy2garmin.hevy import HevyClient
-    hevy = HevyClient(api_key=args.hevy_api_key or cfg.get("hevy_api_key"))
+    hevy = HevyClient(api_key=args.hevy_api_key or cfg.get("hevy_api_key"), hevyless_username=cfg.get("hevyless_username"))
     data = hevy.get_workouts(page=1, page_size=args.limit or 10)
     for w in data.get("workouts", []):
         synced = "✓" if db.is_synced(w["id"]) else " "
@@ -150,7 +150,7 @@ def cmd_unmapped(args: argparse.Namespace) -> None:
     from hevy2garmin.hevy import HevyClient
     from hevy2garmin.mapper import lookup_exercise
 
-    hevy = HevyClient(api_key=args.hevy_api_key or cfg.get("hevy_api_key"))
+    hevy = HevyClient(api_key=args.hevy_api_key or cfg.get("hevy_api_key"), hevyless_username=cfg.get("hevyless_username"))
 
     # Scan recent workouts for unmapped exercises
     unmapped: dict[str, int] = {}

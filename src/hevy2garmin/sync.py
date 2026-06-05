@@ -100,7 +100,8 @@ def sync(
     if not limit and not fetch_all and not since:
         limit = cfg.get("sync", {}).get("default_limit", 10)
 
-    hevy = HevyClient(api_key=hevy_api_key)
+    hevyless_username = overrides.get("hevyless_username") or cfg.get("hevyless_username")
+    hevy = HevyClient(api_key=hevy_api_key, hevyless_username=hevyless_username)
     total_count = hevy.get_workout_count()
     logger.info("Hevy reports %d total workouts", total_count)
 
