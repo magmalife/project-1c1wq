@@ -30,7 +30,9 @@ class HevyClient:
         hevyless_username: str | None = None,
     ) -> None:
         self.hevyless_username = hevyless_username
-        self.is_hevyless = bool(hevyless_username) and not api_key
+        
+        # Prefer hevyless_username if provided, as it is the primary mode of this fork
+        self.is_hevyless = bool(hevyless_username)
         
         if self.is_hevyless:
             return
